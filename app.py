@@ -6,21 +6,48 @@ from langchain.text_splitter import RecursiveJsonSplitter
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 import faiss
 from sentence_transformers import SentenceTransformer
+import requests
 
+# Session state for Q&A
 if "qa_history" not in st.session_state:
     st.session_state.qa_history = []
 
+# Model config
+OLLAMA_ENDPOINT = "http://localhost:11434/api/generate"
+MODEL_ID = "gpt2"
+
+MODEL_OPTIONS = {
+    "Ollama (phi3)": "ollama",
+    "Hugging Face (GPT-2)": "hf"
+}
+
+# Sidebar model selector
+selected_model_name = st.sidebar.selectbox("Choose a model", list(MODEL_OPTIONS.keys()))
+selected_model_type = MODEL_OPTIONS[selected_model_name]
+
+# Load HF model only if needed
 @st.cache_resource
 def load_model():
-    model_name = "Tempestas/gpt2-wiki-movies-0"
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForCausalLM.from_pretrained(model_name)
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
+    model = AutoModelForCausalLM.from_pretrained(MODEL_ID)
     return pipeline("text-generation", model=model, tokenizer=tokenizer)
 
+# Ollama generator
+def query_phi3_ollama(prompt):
+    response = requests.post(OLLAMA_ENDPOINT, json={
+        "model": "phi3",
+        "prompt": prompt,
+        "stream": False
+    })
+    response.raise_for_status()
+    return response.json()["response"].strip()
+
+# Load embedding model
 @st.cache_resource
 def load_embedding_model():
     return SentenceTransformer("all-MiniLM-L6-v2")
 
+# Load books
 @st.cache_data
 def load_books(json_path, chunk_size=300):
     with open(json_path, 'r') as file:
@@ -28,6 +55,7 @@ def load_books(json_path, chunk_size=300):
     splitter = RecursiveJsonSplitter(max_chunk_size=chunk_size)
     return splitter.split_json(json_data=json_data, convert_lists=True)
 
+# Build FAISS index
 @st.cache_data
 def build_faiss_index(_datasource, _model):
     texts = []
@@ -49,6 +77,7 @@ def build_faiss_index(_datasource, _model):
 
     return index, book_ids, book_map
 
+# Retrieve best-matching book
 def retrieve_top_ranked_book(query, model, index, book_ids, book_map):
     query_vec = model.encode([query], convert_to_numpy=True)
     faiss.normalize_L2(query_vec)
@@ -59,21 +88,26 @@ def retrieve_top_ranked_book(query, model, index, book_ids, book_map):
         return book_map[best_book_id]
     return None
 
-# Streamlit UI
+# UI
 st.title("📚 Book Q&A App")
-query = st.text_input("Ask a question about the books:")
-generator = load_model()
+
+# Load data/models
 datasource = load_books("books.json")
 embedding_model = load_embedding_model()
 index, book_ids, book_map = build_faiss_index(datasource, embedding_model)
 
+# Main logic
+with st.form("qa_form"):
+    query = st.text_input("Ask a question about the books:")
+    submitted = st.form_submit_button("Submit")
 
-if query:
+if submitted and query:
+    datasource = load_books("books.json")
+    embedding_model = load_embedding_model()
+    index, book_ids, book_map = build_faiss_index(datasource, embedding_model)
+
     book = retrieve_top_ranked_book(query, embedding_model, index, book_ids, book_map)
     if book:
-        title = book["title"]
-        author = book["author"]
-        summary = book["summary"]
         prompt = (
             f"You are a knowledgeable librarian assistant. Your task is to answer questions based on the content of the following book:\n"
             f"---\n"
@@ -84,8 +118,13 @@ if query:
             f"Question: {query}\n"
             f"Answer:"
         )
-        result = generator(prompt, max_new_tokens=100, do_sample=True, temperature=0.7)
-        answer = result[0]["generated_text"].split("Answer:")[-1].strip()
+        with st.spinner("Loading answer..."):
+            if selected_model_type == "ollama":
+                answer = query_phi3_ollama(prompt)
+            else:
+                generator = load_model()
+                result = generator(prompt, max_new_tokens=100, do_sample=True, temperature=0.7)
+                answer = result[0]["generated_text"].split("Answer:")[-1].strip()
 
         st.session_state.qa_history.append({
             "book": f"{book['title']} by {book['author']}",
@@ -94,15 +133,6 @@ if query:
         })
 
         st.markdown(f"### Book: {book['title']} by {book['author']}")
-        st.markdown(f"Answer: {answer}")
+        st.markdown(f"**Answer**: {answer}")
     else:
         st.warning("No matching book found.")
-
-if st.session_state.qa_history:
-    st.markdown("---")
-    st.markdown("## History")
-    for entry in reversed(st.session_state.qa_history):
-        st.markdown(f"**Q:** {entry['question']}")
-        st.markdown(f"**A:** {entry['answer']}")
-        st.markdown(f"_Book: {entry['book']}_")
-        st.markdown("---")
