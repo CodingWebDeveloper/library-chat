@@ -1,0 +1,52 @@
+[
+  {
+    "title": "To Kill a Mockingbird",
+    "author": "Harper Lee",
+    "summary": "A coming-of-age story set in the American South, focusing on race, justice, and moral growth as seen through the eyes of a young girl."
+  },
+  {
+    "title": "1984",
+    "author": "George Orwell",
+    "summary": "A dystopian novel that explores the dangers of totalitarianism, surveillance, and loss of individuality in a society ruled by Big Brother."
+  },
+  {
+    "title": "The Great Gatsby",
+    "author": "F. Scott Fitzgerald",
+    "summary": "A critique of the American Dream told through the tragic story of Jay Gatsby, a wealthy man longing for a lost love."
+  },
+  {
+    "title": "Pride and Prejudice",
+    "author": "Jane Austen",
+    "summary": "A romantic novel about manners, marriage, and morality in 19th-century England, centered on the witty and independent Elizabeth Bennet."
+  },
+  {
+    "title": "Moby-Dick",
+    "author": "Herman Melville",
+    "summary": "An epic tale of obsession and revenge, chronicling Captain Ahab\u2019s relentless pursuit of the white whale, Moby Dick."
+  },
+  {
+    "title": "Brave New World",
+    "author": "Aldous Huxley",
+    "summary": "A futuristic society driven by technological control and social conditioning, questioning the cost of a seemingly perfect world."
+  },
+  {
+    "title": "The Catcher in the Rye",
+    "author": "J.D. Salinger",
+    "summary": "A story about teenage alienation and rebellion, narrated by the cynical and disillusioned Holden Caulfield."
+  },
+  {
+    "title": "The Hobbit",
+    "author": "J.R.R. Tolkien",
+    "summary": "A fantasy adventure where Bilbo Baggins, a reluctant hobbit, embarks on a quest to help dwarves reclaim their homeland."
+  },
+  {
+    "title": "Frankenstein",
+    "author": "Mary Shelley",
+    "summary": "A gothic novel about a scientist who creates life and the tragic consequences of playing god."
+  },
+  {
+    "title": "Crime and Punishment",
+    "author": "Fyodor Dostoevsky",
+    "summary": "A psychological exploration of guilt, redemption, and morality as a man wrestles with the aftermath of committing murder."
+  }
+]
