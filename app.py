@@ -136,3 +136,12 @@ if submitted and query:
         st.markdown(f"**Answer**: {answer}")
     else:
         st.warning("No matching book found.")
+
+if st.session_state.qa_history:
+    st.markdown("---")
+    st.markdown("## History")
+    for entry in reversed(st.session_state.qa_history):
+        st.markdown(f"**Q:** {entry['question']}")
+        st.markdown(f"**A:** {entry['answer']}")
+        st.markdown(f"_Book: {entry['book']}_")
+        st.markdown("---")
