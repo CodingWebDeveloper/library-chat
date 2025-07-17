@@ -6,14 +6,14 @@ from langchain.text_splitter import RecursiveJsonSplitter
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 import faiss
 from sentence_transformers import SentenceTransformer
-import requests
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_ollama.llms import OllamaLLM
 
 # Session state for Q&A
 if "qa_history" not in st.session_state:
     st.session_state.qa_history = []
 
 # Model config
-OLLAMA_ENDPOINT = "http://localhost:11434/api/generate"
 MODEL_ID = "gpt2"
 
 MODEL_OPTIONS = {
@@ -32,15 +32,23 @@ def load_model():
     model = AutoModelForCausalLM.from_pretrained(MODEL_ID)
     return pipeline("text-generation", model=model, tokenizer=tokenizer)
 
-# Ollama generator
-def query_phi3_ollama(prompt):
-    response = requests.post(OLLAMA_ENDPOINT, json={
-        "model": "phi3",
-        "prompt": prompt,
-        "stream": False
-    })
-    response.raise_for_status()
-    return response.json()["response"].strip()
+# Ollama chain setup
+@st.cache_resource
+def setup_ollama_chain():
+    template = """You are a knowledgeable librarian assistant. Your task is to answer questions based on the content of the following book:
+---
+Book Title: {title}
+Author: {author}
+Summary:
+{summary}
+---
+Question: {question}
+
+Answer: Let's provide a helpful response."""
+
+    prompt = ChatPromptTemplate.from_template(template)
+    model = OllamaLLM(model="phi3")
+    return prompt | model
 
 # Load embedding model
 @st.cache_resource
@@ -120,7 +128,13 @@ if submitted and query:
         )
         with st.spinner("Loading answer..."):
             if selected_model_type == "ollama":
-                answer = query_phi3_ollama(prompt)
+                chain = setup_ollama_chain()
+                answer = chain.invoke({
+                    "title": book['title'],
+                    "author": book['author'],
+                    "summary": book['summary'],
+                    "question": query
+                })
             else:
                 generator = load_model()
                 result = generator(prompt, max_new_tokens=100, do_sample=True, temperature=0.7)

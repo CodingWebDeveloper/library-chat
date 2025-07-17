@@ -1,3 +1,7 @@
 langchain
 transformers
 sentence_transformers
+langchain-core
+langchain-ollama
+faiss-cpu
+streamlit
